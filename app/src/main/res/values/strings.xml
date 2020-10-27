@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">ProxyResest</string>
+    <string name="NOTIFICATION_ID">42</string>
+    <string name="notification_channel_id">proxyreset_channel_id</string>
+    <string name="notification_title">ProxyReset Running</string>
+    <string name="cancel_download">Stop</string>
+    <string name="group_name">ProxyReset</string>
+</resources>
