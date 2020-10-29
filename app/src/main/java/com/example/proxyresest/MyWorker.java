@@ -19,14 +19,21 @@ import com.github.nkzawa.emitter.Emitter;
 import com.github.nkzawa.socketio.client.IO;
 import com.github.nkzawa.socketio.client.Socket;
 
+import android.content.Intent;
 import android.graphics.Color;
 import android.os.Build;
+import android.provider.Settings;
+import android.telephony.TelephonyManager;
 import android.util.Log;
+import android.widget.Toast;
+
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.URISyntaxException;
 
 import static android.content.Context.NOTIFICATION_SERVICE;
+import static android.content.Context.TELEPHONY_SERVICE;
+import static android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP;
 import static android.provider.Settings.System.getString;
 import static androidx.core.content.ContextCompat.getSystemService;
 
@@ -52,9 +59,21 @@ public class MyWorker extends Worker{
     }
 
     private final Emitter.Listener onNewMessage = new Emitter.Listener() {
+        @RequiresApi(api = Build.VERSION_CODES.M)
         @Override
         public void call(final Object... args) {
             try {
+                @SuppressLint("HardwareIds") String android_id = Settings.Secure.getString(getApplicationContext().getContentResolver(), Settings.Secure.ANDROID_ID);
+                TelephonyManager TelephonyMgr = (TelephonyManager) getApplicationContext().getSystemService(TELEPHONY_SERVICE);
+                String imei = TelephonyMgr.getDeviceId();
+                String mobile_name = Build.BRAND + " " + Build.MODEL;
+                mSocket.emit("requestToResetNetwork", "android");
+                System.out.println("*****************************************************************************");
+                System.out.println(android_id);
+                System.out.println(imei);
+                System.out.println(mobile_name);
+                System.out.println("*****************************************************************************");
+
                 Process onCommand = Runtime.getRuntime().exec("su");
                 DataOutputStream turnOn = new DataOutputStream(onCommand.getOutputStream());
                 turnOn.writeBytes("settings put global airplane_mode_on 1\n");
@@ -82,11 +101,10 @@ public class MyWorker extends Worker{
 
     @NonNull
     private ForegroundInfo createForegroundInfo(@NonNull String progress) {
-        // Build a notification using bytesRead and contentLength
 
         Context context = getApplicationContext();
         String id = context.getString(R.string.notification_channel_id);
-        String title = context.getString(R.string.notification_title);
+        String title = context.getString(R.string.notification_title) + " from " + Integer.toString(Global.count) + " times";
         String cancel = context.getString(R.string.cancel_download);
         // This PendingIntent can be used to cancel the worker
         PendingIntent intent = WorkManager.getInstance(context)
@@ -102,6 +120,10 @@ public class MyWorker extends Worker{
                 .setOngoing(true)
                 .setSmallIcon(R.drawable.ic_notification)
                 .addAction(android.R.drawable.ic_delete, cancel, intent)
+                .setContentIntent(
+                        PendingIntent.getActivity(context, 10,
+                        new Intent(context, MainActivity.class)
+                                .addFlags(FLAG_ACTIVITY_CLEAR_TOP), 0))
                 .build();
         NotificationManager notificationManager =
                 (NotificationManager) getApplicationContext().getSystemService(Context.NOTIFICATION_SERVICE);
@@ -132,6 +154,9 @@ public class MyWorker extends Worker{
 
     @Override
     public Result doWork() {
+        Global.count++;
+        System.out.println("WorkManager worked");
+        System.out.println(Global.count);
         String progress = "Starting Download";
         setForegroundAsync(createForegroundInfo(progress));
         mSocket.on("Material", onNewMessage);

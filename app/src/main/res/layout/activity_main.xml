@@ -11,7 +11,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:onClick="stopToggle"
-        android:text="Button"
+        android:text="Stop"
         tools:layout_editor_absoluteX="142dp"
         tools:layout_editor_absoluteY="221dp" />
 </androidx.constraintlayout.widget.ConstraintLayout>
