@@ -67,17 +67,6 @@ public class MyWorker extends Worker{
         @Override
         public void call(final Object... args) {
             try {
-                @SuppressLint("HardwareIds") String android_id = Settings.Secure.getString(getApplicationContext().getContentResolver(), Settings.Secure.ANDROID_ID);
-                TelephonyManager TelephonyMgr = (TelephonyManager) getApplicationContext().getSystemService(TELEPHONY_SERVICE);
-                String imei = TelephonyMgr.getDeviceId();
-                String mobile_name = Build.BRAND + " " + Build.MODEL;
-//                mSocket.emit("requestToResetNetwork", "android");
-                JSONObject obj = new JSONObject();
-                obj.put("mobile_name", mobile_name);
-                obj.put("device_id", android_id);
-                obj.put("imei_number", imei);
-                obj.put("socket_id", mSocket.id());
-                mSocket.emit("setDevice", obj);
                 Process onCommand = Runtime.getRuntime().exec("su");
                 DataOutputStream turnOn = new DataOutputStream(onCommand.getOutputStream());
                 turnOn.writeBytes("settings put global airplane_mode_on 1\n");
@@ -97,7 +86,7 @@ public class MyWorker extends Worker{
                 turnOff.writeBytes("exit\n");
                 turnOff.flush();
                 offCommand.waitFor();
-            } catch (IOException | InterruptedException | JSONException e) {
+            } catch (IOException | InterruptedException e) {
                 e.printStackTrace();
             }
         }
@@ -163,9 +152,22 @@ public class MyWorker extends Worker{
         System.out.println(Global.count);
         String progress = "Starting Download";
         setForegroundAsync(createForegroundInfo(progress));
-        mSocket.on("Material", onNewMessage);
+        mSocket.on("resetRequest", onNewMessage);
         mSocket.connect();
-        mSocket.emit("requestToResetNetwork", "android");
+        @SuppressLint("HardwareIds") String android_id = Settings.Secure.getString(getApplicationContext().getContentResolver(), Settings.Secure.ANDROID_ID);
+        TelephonyManager TelephonyMgr = (TelephonyManager) getApplicationContext().getSystemService(TELEPHONY_SERVICE);
+        String imei = TelephonyMgr.getDeviceId();
+        String mobile_name = Build.BRAND + " " + Build.MODEL;
+        JSONObject obj = new JSONObject();
+        try {
+            obj.put("mobile_name", mobile_name);
+            obj.put("device_id", android_id);
+            obj.put("imei_number", imei);
+            obj.put("socket_id", mSocket.id());
+            mSocket.emit("setDevice", obj);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
         return Result.success();
     }
 }
