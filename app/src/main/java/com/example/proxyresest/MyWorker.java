@@ -27,9 +27,13 @@ import android.telephony.TelephonyManager;
 import android.util.Log;
 import android.widget.Toast;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.URISyntaxException;
+import java.util.HashMap;
 
 import static android.content.Context.NOTIFICATION_SERVICE;
 import static android.content.Context.TELEPHONY_SERVICE;
@@ -67,13 +71,13 @@ public class MyWorker extends Worker{
                 TelephonyManager TelephonyMgr = (TelephonyManager) getApplicationContext().getSystemService(TELEPHONY_SERVICE);
                 String imei = TelephonyMgr.getDeviceId();
                 String mobile_name = Build.BRAND + " " + Build.MODEL;
-                mSocket.emit("requestToResetNetwork", "android");
-                System.out.println("*****************************************************************************");
-                System.out.println(android_id);
-                System.out.println(imei);
-                System.out.println(mobile_name);
-                System.out.println("*****************************************************************************");
-
+//                mSocket.emit("requestToResetNetwork", "android");
+                JSONObject obj = new JSONObject();
+                obj.put("mobile_name", mobile_name);
+                obj.put("device_id", android_id);
+                obj.put("imei_number", imei);
+                obj.put("socket_id", mSocket.id());
+                mSocket.emit("setDevice", obj);
                 Process onCommand = Runtime.getRuntime().exec("su");
                 DataOutputStream turnOn = new DataOutputStream(onCommand.getOutputStream());
                 turnOn.writeBytes("settings put global airplane_mode_on 1\n");
@@ -93,7 +97,7 @@ public class MyWorker extends Worker{
                 turnOff.writeBytes("exit\n");
                 turnOff.flush();
                 offCommand.waitFor();
-            } catch (IOException | InterruptedException e) {
+            } catch (IOException | InterruptedException | JSONException e) {
                 e.printStackTrace();
             }
         }
