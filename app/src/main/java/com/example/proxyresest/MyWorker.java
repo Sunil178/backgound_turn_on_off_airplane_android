@@ -153,21 +153,26 @@ public class MyWorker extends Worker{
         String progress = "Starting Download";
         setForegroundAsync(createForegroundInfo(progress));
         mSocket.on("resetRequest", onNewMessage);
+        mSocket.on(Socket.EVENT_CONNECT, new Emitter.Listener() {
+            @Override
+            public void call(Object... args) {
+                @SuppressLint("HardwareIds") String android_id = Settings.Secure.getString(getApplicationContext().getContentResolver(), Settings.Secure.ANDROID_ID);
+                TelephonyManager TelephonyMgr = (TelephonyManager) getApplicationContext().getSystemService(TELEPHONY_SERVICE);
+                String imei = TelephonyMgr.getDeviceId();
+                String mobile_name = Build.BRAND + " " + Build.MODEL;
+                JSONObject obj = new JSONObject();
+                try {
+                    obj.put("mobile_name", mobile_name);
+                    obj.put("device_id", android_id);
+                    obj.put("imei_number", imei);
+                    obj.put("socket_id", mSocket.id());
+                    mSocket.emit("setDevice", obj);
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
         mSocket.connect();
-        @SuppressLint("HardwareIds") String android_id = Settings.Secure.getString(getApplicationContext().getContentResolver(), Settings.Secure.ANDROID_ID);
-        TelephonyManager TelephonyMgr = (TelephonyManager) getApplicationContext().getSystemService(TELEPHONY_SERVICE);
-        String imei = TelephonyMgr.getDeviceId();
-        String mobile_name = Build.BRAND + " " + Build.MODEL;
-        JSONObject obj = new JSONObject();
-        try {
-            obj.put("mobile_name", mobile_name);
-            obj.put("device_id", android_id);
-            obj.put("imei_number", imei);
-            obj.put("socket_id", mSocket.id());
-            mSocket.emit("setDevice", obj);
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
         return Result.success();
     }
 }
