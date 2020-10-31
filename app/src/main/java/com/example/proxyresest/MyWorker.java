@@ -53,10 +53,10 @@ public class MyWorker extends Worker{
     {
         try {
             IO.Options options = new IO.Options();
-            options.port = 6969;
+            options.port = 2000;
             options.reconnection = true;
             options.forceNew = true;
-            mSocket = IO.socket("http://127.0.0.1:6969", options);
+            mSocket = IO.socket("http://15.207.247.154:2000/", options);
         } catch (URISyntaxException e) {
             Log.e("abc", "index=" + e);
         }

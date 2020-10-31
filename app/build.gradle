@@ -48,6 +48,7 @@ dependencies {
 }
 
 configurations.all {
+    exclude module: 'json'
     resolutionStrategy.eachDependency { DependencyResolveDetails details ->
         def requested = details.requested
         if (requested.group == "androidx.appcompat") {
