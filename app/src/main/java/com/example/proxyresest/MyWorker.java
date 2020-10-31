@@ -21,6 +21,7 @@ import com.github.nkzawa.socketio.client.Socket;
 
 import android.content.Intent;
 import android.graphics.Color;
+import android.os.BatteryManager;
 import android.os.Build;
 import android.provider.Settings;
 import android.telephony.TelephonyManager;
@@ -35,6 +36,7 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 import java.util.HashMap;
 
+import static android.content.Context.BATTERY_SERVICE;
 import static android.content.Context.NOTIFICATION_SERVICE;
 import static android.content.Context.TELEPHONY_SERVICE;
 import static android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP;
@@ -160,11 +162,14 @@ public class MyWorker extends Worker{
                 TelephonyManager TelephonyMgr = (TelephonyManager) getApplicationContext().getSystemService(TELEPHONY_SERVICE);
                 String imei = TelephonyMgr.getDeviceId();
                 String mobile_name = Build.BRAND + " " + Build.MODEL;
+                BatteryManager bm = (BatteryManager) getApplicationContext().getSystemService(BATTERY_SERVICE);
+                int batLevel = bm.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY);
                 JSONObject obj = new JSONObject();
                 try {
                     obj.put("mobile_name", mobile_name);
                     obj.put("device_id", android_id);
                     obj.put("imei_number", imei);
+                    obj.put("battery", batLevel);
                     obj.put("socket_id", mSocket.id());
                     mSocket.emit("setDevice", obj);
                 } catch (JSONException e) {
