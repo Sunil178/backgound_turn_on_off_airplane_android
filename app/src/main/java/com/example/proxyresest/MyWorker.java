@@ -121,6 +121,7 @@ public class MyWorker extends Worker{
                             obj.put("device_id", android_id);
                             obj.put("imei_number", imei);
                             obj.put("proxy_text", copyedText);
+                            obj.put("web_socket_id", ((JSONObject) args[0]).getString("web_socket_id"));
                             mSocket.emit("proxyStringResponse", obj);
                         } catch (JSONException e) {
                             e.printStackTrace();
@@ -173,6 +174,7 @@ public class MyWorker extends Worker{
                             obj.put("device_id", android_id);
                             obj.put("imei_number", imei);
                             obj.put("proxy_text", copyedText);
+                            obj.put("web_socket_id", ((JSONObject) args[0]).getString("web_socket_id"));
                             mSocket.emit("proxyStringResponse", obj);
                         } catch (JSONException e) {
                             e.printStackTrace();
@@ -187,17 +189,20 @@ public class MyWorker extends Worker{
 
 
 
-    private final Emitter.Listener onNewMessage = new Emitter.Listener() {
+    private final Emitter.Listener onRotateProxy = new Emitter.Listener() {
         @RequiresApi(api = Build.VERSION_CODES.M)
         @Override
         public void call(final Object... args) {
             try {
+                JSONObject obj = new JSONObject();
+                obj.put("web_socket_id", ((JSONObject) args[0]).getString("web_socket_id"));
+                mSocket.emit("rotateResponse", obj);
                 Runtime.getRuntime().exec("su -c settings put global airplane_mode_on 1\n");
                 Runtime.getRuntime().exec("su -c am broadcast -a android.intent.action.AIRPLANE_MODE\n");
                 Thread.sleep(2000);
                 Runtime.getRuntime().exec("su -c settings put global airplane_mode_on 0\n");
                 Runtime.getRuntime().exec("su -c am broadcast -a android.intent.action.AIRPLANE_MODE\n");
-            } catch (IOException | InterruptedException e) {
+            } catch (IOException | InterruptedException | JSONException e) {
                 e.printStackTrace();
             }
         }
@@ -262,7 +267,7 @@ public class MyWorker extends Worker{
         System.out.println(Global.count);
         String progress = "Starting Download";
         setForegroundAsync(createForegroundInfo(progress));
-        mSocket.on("resetRequest", onNewMessage);
+        mSocket.on("resetRequest", onRotateProxy);
         mSocket.on("requestToOpenProxidize", onStartProxidize);
         mSocket.on("requestToOpenForceProxidize", onForceStartProxidize);
         mSocket.on(Socket.EVENT_CONNECT, new Emitter.Listener() {
