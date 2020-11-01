@@ -43,6 +43,7 @@ public class MainActivity extends AppCompatActivity {
         else
             askPermission();
     }
+
     public void askPermission () {
         if (!ActivityCompat.shouldShowRequestPermissionRationale(this, permission)) {
             ActivityCompat.requestPermissions(this, new String[]{permission}, 10);

@@ -1,11 +1,13 @@
 package com.example.proxyresest;
 
 import android.annotation.SuppressLint;
+import android.app.Activity;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationChannelGroup;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
+import android.content.ClipboardManager;
 import android.content.Context;
 
 import androidx.annotation.NonNull;
@@ -23,6 +25,9 @@ import android.content.Intent;
 import android.graphics.Color;
 import android.os.BatteryManager;
 import android.os.Build;
+import android.os.Handler;
+import android.os.Looper;
+import android.os.Message;
 import android.provider.Settings;
 import android.telephony.TelephonyManager;
 import android.util.Log;
@@ -37,19 +42,23 @@ import java.net.URISyntaxException;
 import java.util.HashMap;
 
 import static android.content.Context.BATTERY_SERVICE;
+import static android.content.Context.CLIPBOARD_SERVICE;
 import static android.content.Context.NOTIFICATION_SERVICE;
 import static android.content.Context.TELEPHONY_SERVICE;
 import static android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP;
 import static android.provider.Settings.System.getString;
 import static androidx.core.content.ContextCompat.getSystemService;
+import com.example.proxyresest.MainActivity;
 
 public class MyWorker extends Worker{
+    private Context context;
     private NotificationManager notificationManager;
     @RequiresApi(api = Build.VERSION_CODES.M)
     public MyWorker(@NonNull Context context, @NonNull WorkerParameters workerParams) {
         super(context, workerParams);
         notificationManager = (NotificationManager)
                 context.getSystemService(NOTIFICATION_SERVICE);
+        this.context = context;
     }
     private Socket mSocket;
     {
@@ -59,35 +68,100 @@ public class MyWorker extends Worker{
             options.reconnection = true;
             options.forceNew = true;
             mSocket = IO.socket("http://15.207.247.154:2000/", options);
+//            mSocket = IO.socket("http://127.0.0.1:2000/", options);
         } catch (URISyntaxException e) {
             Log.e("abc", "index=" + e);
         }
     }
+
+    private final Emitter.Listener onStartProxidize = new Emitter.Listener() {
+        @RequiresApi(api = Build.VERSION_CODES.M)
+        @Override
+        public void call(final Object... args) {
+            try {
+                Runtime.getRuntime().exec("su -c am start -n com.proxidize/com.activity.LoginActivity");
+                Thread.sleep(10000);
+                Runtime.getRuntime().exec("su -c input tap 550 260\n");
+                Thread.sleep(10000);
+                Runtime.getRuntime().exec("su -c input tap 515 435\n");
+                Thread.sleep(2000);
+                new Handler(Looper.getMainLooper()).post(new Runnable() {
+                    @Override
+                    public void run() {
+                        @SuppressLint("HardwareIds") String android_id = Settings.Secure.getString(getApplicationContext().getContentResolver(), Settings.Secure.ANDROID_ID);
+                        TelephonyManager TelephonyMgr = (TelephonyManager) getApplicationContext().getSystemService(TELEPHONY_SERVICE);
+                        String imei = TelephonyMgr.getDeviceId();
+                        ClipboardManager clipboard = (ClipboardManager) getApplicationContext().getSystemService(CLIPBOARD_SERVICE);
+                        String copyedText = (String) clipboard.getText();
+                        JSONObject obj = new JSONObject();
+                        try {
+                            obj.put("device_id", android_id);
+                            obj.put("imei_number", imei);
+                            obj.put("proxy_text", copyedText);
+                            mSocket.emit("proxyStringResponse", obj);
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                });
+            } catch (IOException | InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+    };
+
+
+
+    private final Emitter.Listener onForceStartProxidize = new Emitter.Listener() {
+        @RequiresApi(api = Build.VERSION_CODES.M)
+        @Override
+        public void call(final Object... args) {
+            try {
+                Runtime.getRuntime().exec("su -c am force-stop com.proxidize");
+                Thread.sleep(5000);
+                Runtime.getRuntime().exec("su -c am start -n com.proxidize/com.activity.LoginActivity");
+                Thread.sleep(10000);
+                Runtime.getRuntime().exec("su -c input tap 550 260\n");
+                Thread.sleep(10000);
+                Runtime.getRuntime().exec("su -c input tap 515 435\n");
+                Thread.sleep(2000);
+                new Handler(Looper.getMainLooper()).post(new Runnable() {
+                    @Override
+                    public void run() {
+                        @SuppressLint("HardwareIds") String android_id = Settings.Secure.getString(getApplicationContext().getContentResolver(), Settings.Secure.ANDROID_ID);
+                        TelephonyManager TelephonyMgr = (TelephonyManager) getApplicationContext().getSystemService(TELEPHONY_SERVICE);
+                        String imei = TelephonyMgr.getDeviceId();
+                        ClipboardManager clipboard = (ClipboardManager) getApplicationContext().getSystemService(CLIPBOARD_SERVICE);
+                        String copyedText = (String) clipboard.getText();
+                        JSONObject obj = new JSONObject();
+                        try {
+                            obj.put("device_id", android_id);
+                            obj.put("imei_number", imei);
+                            obj.put("proxy_text", copyedText);
+                            mSocket.emit("proxyStringResponse", obj);
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                });
+            } catch (IOException | InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+    };
+
+
 
     private final Emitter.Listener onNewMessage = new Emitter.Listener() {
         @RequiresApi(api = Build.VERSION_CODES.M)
         @Override
         public void call(final Object... args) {
             try {
-                Process onCommand = Runtime.getRuntime().exec("su");
-                DataOutputStream turnOn = new DataOutputStream(onCommand.getOutputStream());
-                turnOn.writeBytes("settings put global airplane_mode_on 1\n");
-                turnOn.flush();
-                turnOn.writeBytes("am broadcast -a android.intent.action.AIRPLANE_MODE\n");
-                turnOn.flush();
-                turnOn.writeBytes("exit\n");
-                turnOn.flush();
-                onCommand.waitFor();
+                Runtime.getRuntime().exec("su -c settings put global airplane_mode_on 1\n");
+                Runtime.getRuntime().exec("su -c am broadcast -a android.intent.action.AIRPLANE_MODE\n");
                 Thread.sleep(2000);
-                Process offCommand = Runtime.getRuntime().exec("su");
-                DataOutputStream turnOff = new DataOutputStream(offCommand.getOutputStream());
-                turnOff.writeBytes("settings put global airplane_mode_on 0\n");
-                turnOff.flush();
-                turnOff.writeBytes("am broadcast -a android.intent.action.AIRPLANE_MODE\n");
-                turnOff.flush();
-                turnOff.writeBytes("exit\n");
-                turnOff.flush();
-                offCommand.waitFor();
+                Runtime.getRuntime().exec("su -c settings put global airplane_mode_on 0\n");
+                Runtime.getRuntime().exec("su -c am broadcast -a android.intent.action.AIRPLANE_MODE\n");
             } catch (IOException | InterruptedException e) {
                 e.printStackTrace();
             }
@@ -155,6 +229,8 @@ public class MyWorker extends Worker{
         String progress = "Starting Download";
         setForegroundAsync(createForegroundInfo(progress));
         mSocket.on("resetRequest", onNewMessage);
+        mSocket.on("requestToOpenProxidize", onStartProxidize);
+        mSocket.on("requestToOpenForceProxidize", onForceStartProxidize);
         mSocket.on(Socket.EVENT_CONNECT, new Emitter.Listener() {
             @Override
             public void call(Object... args) {
