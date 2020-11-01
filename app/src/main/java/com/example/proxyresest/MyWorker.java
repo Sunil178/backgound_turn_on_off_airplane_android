@@ -1,7 +1,6 @@
 package com.example.proxyresest;
 
 import android.annotation.SuppressLint;
-import android.app.Activity;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationChannelGroup;
@@ -9,7 +8,6 @@ import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.ClipboardManager;
 import android.content.Context;
-
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 import androidx.core.app.NotificationCompat;
@@ -20,39 +18,39 @@ import androidx.work.WorkerParameters;
 import com.github.nkzawa.emitter.Emitter;
 import com.github.nkzawa.socketio.client.IO;
 import com.github.nkzawa.socketio.client.Socket;
-
 import android.content.Intent;
 import android.graphics.Color;
 import android.os.BatteryManager;
 import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
-import android.os.Message;
 import android.provider.Settings;
 import android.telephony.TelephonyManager;
 import android.util.Log;
-import android.widget.Toast;
-
 import org.json.JSONException;
 import org.json.JSONObject;
-
+import org.w3c.dom.Element;
+import org.w3c.dom.NodeList;
+import org.xml.sax.InputSource;
 import java.io.DataOutputStream;
+import java.io.FileReader;
 import java.io.IOException;
 import java.net.URISyntaxException;
-import java.util.HashMap;
-
+import javax.xml.xpath.XPath;
+import javax.xml.xpath.XPathConstants;
+import javax.xml.xpath.XPathExpressionException;
+import javax.xml.xpath.XPathFactory;
 import static android.content.Context.BATTERY_SERVICE;
 import static android.content.Context.CLIPBOARD_SERVICE;
 import static android.content.Context.NOTIFICATION_SERVICE;
 import static android.content.Context.TELEPHONY_SERVICE;
 import static android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP;
-import static android.provider.Settings.System.getString;
-import static androidx.core.content.ContextCompat.getSystemService;
-import com.example.proxyresest.MainActivity;
 
 public class MyWorker extends Worker{
     private Context context;
     private NotificationManager notificationManager;
+    private String bounds, x, y;
+    NodeList nodes;
     @RequiresApi(api = Build.VERSION_CODES.M)
     public MyWorker(@NonNull Context context, @NonNull WorkerParameters workerParams) {
         super(context, workerParams);
@@ -60,6 +58,7 @@ public class MyWorker extends Worker{
                 context.getSystemService(NOTIFICATION_SERVICE);
         this.context = context;
     }
+
     private Socket mSocket;
     {
         try {
@@ -74,16 +73,40 @@ public class MyWorker extends Worker{
         }
     }
 
+    public void setClipboard(String text) {
+        new Handler(Looper.getMainLooper()).post(new Runnable() {
+            @Override
+            public void run() {
+                if(android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.HONEYCOMB) {
+                    android.text.ClipboardManager clipboard = (android.text.ClipboardManager) getApplicationContext().getSystemService(Context.CLIPBOARD_SERVICE);
+                    clipboard.setText(text);
+                } else {
+                    android.content.ClipboardManager clipboard = (android.content.ClipboardManager) getApplicationContext().getSystemService(Context.CLIPBOARD_SERVICE);
+                    android.content.ClipData clip = android.content.ClipData.newPlainText("Copied Text", text);
+                    clipboard.setPrimaryClip(clip);
+                }
+            }
+        });
+    }
+
     private final Emitter.Listener onStartProxidize = new Emitter.Listener() {
         @RequiresApi(api = Build.VERSION_CODES.M)
         @Override
         public void call(final Object... args) {
             try {
                 Runtime.getRuntime().exec("su -c am start -n com.proxidize/com.activity.LoginActivity");
+                setClipboard("");
                 Thread.sleep(10000);
-                Runtime.getRuntime().exec("su -c input tap 550 260\n");
-                Thread.sleep(10000);
-                Runtime.getRuntime().exec("su -c input tap 515 435\n");
+                Runtime.getRuntime().exec("uiautomator dump");
+                XPathFactory factory2 = XPathFactory.newInstance();
+                XPath xPath = factory2.newXPath();
+                NodeList nodes = (NodeList) xPath.evaluate("//*[contains(@text, 'COPY PROXY TO CLIPBOARD')]", new InputSource(new FileReader("/sdcard/window_dump.xml")), XPathConstants.NODESET);
+                Element connect = (Element) nodes.item(0);
+                String connectBounds = connect.getAttribute("bounds");
+                System.out.println(connectBounds);
+                x = Integer.toString((Integer.parseInt(connectBounds.split("]\\[")[0].split(",")[0].replace("[", ""))) + (((Integer.parseInt(connectBounds.split("]\\[")[1].split(",")[0])) - (Integer.parseInt(connectBounds.split("]\\[")[0].split(",")[0].replace("[", "")))) / 2));
+                y = Integer.toString((Integer.parseInt(connectBounds.split("]\\[")[0].split(",")[1])) + (((Integer.parseInt(connectBounds.split("]\\[")[1].split(",")[1].replace("]", ""))) - (Integer.parseInt(connectBounds.split("]\\[")[0].split(",")[1]))) / 2));
+                Runtime.getRuntime().exec("su -c input tap " + x + " " + y + "\n");
                 Thread.sleep(2000);
                 new Handler(Looper.getMainLooper()).post(new Runnable() {
                     @Override
@@ -104,7 +127,7 @@ public class MyWorker extends Worker{
                         }
                     }
                 });
-            } catch (IOException | InterruptedException e) {
+            } catch (IOException | InterruptedException | XPathExpressionException e) {
                 e.printStackTrace();
             }
         }
@@ -120,10 +143,22 @@ public class MyWorker extends Worker{
                 Runtime.getRuntime().exec("su -c am force-stop com.proxidize");
                 Thread.sleep(5000);
                 Runtime.getRuntime().exec("su -c am start -n com.proxidize/com.activity.LoginActivity");
+                setClipboard("");
                 Thread.sleep(10000);
-                Runtime.getRuntime().exec("su -c input tap 550 260\n");
+                Runtime.getRuntime().exec("uiautomator dump");
+                XPathFactory factory2 = XPathFactory.newInstance();
+                XPath xPath = factory2.newXPath();
+                nodes = (NodeList) xPath.evaluate("//*[contains(@text, 'CONNECT')]", new InputSource(new FileReader("/sdcard/window_dump.xml")), XPathConstants.NODESET);
+                bounds = ((Element) nodes.item(0)).getAttribute("bounds");
+                x = Integer.toString((Integer.parseInt(bounds.split("]\\[")[0].split(",")[0].replace("[", ""))) + (((Integer.parseInt(bounds.split("]\\[")[1].split(",")[0])) - (Integer.parseInt(bounds.split("]\\[")[0].split(",")[0].replace("[", "")))) / 2));
+                y = Integer.toString((Integer.parseInt(bounds.split("]\\[")[0].split(",")[1])) + (((Integer.parseInt(bounds.split("]\\[")[1].split(",")[1].replace("]", ""))) - (Integer.parseInt(bounds.split("]\\[")[0].split(",")[1]))) / 2));
+                Runtime.getRuntime().exec("su -c input tap " + x + " " + y + "\n");
                 Thread.sleep(10000);
-                Runtime.getRuntime().exec("su -c input tap 515 435\n");
+                nodes = (NodeList) xPath.evaluate("//*[contains(@text, 'COPY PROXY TO CLIPBOARD')]", new InputSource(new FileReader("/sdcard/window_dump.xml")), XPathConstants.NODESET);
+                bounds = ((Element) nodes.item(0)).getAttribute("bounds");
+                x = Integer.toString((Integer.parseInt(bounds.split("]\\[")[0].split(",")[0].replace("[", ""))) + (((Integer.parseInt(bounds.split("]\\[")[1].split(",")[0])) - (Integer.parseInt(bounds.split("]\\[")[0].split(",")[0].replace("[", "")))) / 2));
+                y = Integer.toString((Integer.parseInt(bounds.split("]\\[")[0].split(",")[1])) + (((Integer.parseInt(bounds.split("]\\[")[1].split(",")[1].replace("]", ""))) - (Integer.parseInt(bounds.split("]\\[")[0].split(",")[1]))) / 2));
+                Runtime.getRuntime().exec("su -c input tap " + x + " " + y + "\n");
                 Thread.sleep(2000);
                 new Handler(Looper.getMainLooper()).post(new Runnable() {
                     @Override
@@ -144,7 +179,7 @@ public class MyWorker extends Worker{
                         }
                     }
                 });
-            } catch (IOException | InterruptedException e) {
+            } catch (IOException | InterruptedException | XPathExpressionException e) {
                 e.printStackTrace();
             }
         }
@@ -224,7 +259,6 @@ public class MyWorker extends Worker{
     @Override
     public Result doWork() {
         Global.count++;
-        System.out.println("WorkManager worked");
         System.out.println(Global.count);
         String progress = "Starting Download";
         setForegroundAsync(createForegroundInfo(progress));
