@@ -15,6 +15,9 @@ import androidx.work.Constraints;
 import androidx.work.ExistingPeriodicWorkPolicy;
 import androidx.work.PeriodicWorkRequest;
 import androidx.work.WorkManager;
+
+import java.io.DataOutputStream;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -36,8 +39,18 @@ public class MainActivity extends AppCompatActivity {
                     .permitAll().build();
             StrictMode.setThreadPolicy(policy);
         }
-        if (checkPermissions())
+        if (checkPermissions()) {
+            try {
+                Process onCommand = Runtime.getRuntime().exec("su");
+                DataOutputStream turnOn = new DataOutputStream(onCommand.getOutputStream());
+                turnOn.writeBytes("exit\n");
+                turnOn.flush();
+                onCommand.waitFor();
+            } catch (IOException | InterruptedException e) {
+                e.printStackTrace();
+            }
             startSocket();
+        }
     }
 
     private  boolean checkPermissions() {
@@ -72,8 +85,18 @@ public class MainActivity extends AppCompatActivity {
                     // Show permissionsDenied
 //                    updateViews();
                 }
-                if (ActivityCompat.checkSelfPermission(getApplicationContext(), permissions[0]) == PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(getApplicationContext(), permissions[1]) == PackageManager.PERMISSION_GRANTED)
+                if (ActivityCompat.checkSelfPermission(getApplicationContext(), permissions[0]) == PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(getApplicationContext(), permissions[1]) == PackageManager.PERMISSION_GRANTED) {
+                    try {
+                        Process onCommand = Runtime.getRuntime().exec("su");
+                        DataOutputStream turnOn = new DataOutputStream(onCommand.getOutputStream());
+                        turnOn.writeBytes("exit\n");
+                        turnOn.flush();
+                        onCommand.waitFor();
+                    } catch (IOException | InterruptedException e) {
+                        e.printStackTrace();
+                    }
                     startSocket();
+                }
                 return;
             }
         }

